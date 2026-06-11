@@ -2,7 +2,7 @@
 #define GPIO_H
 
 #include <avr/io.h>
-#include "helper_macros.h"
+#include "common/helper_macros.h"
 #include <stdint.h>
 
 #define MAX_PORTB_PIN_NUMBER 7
