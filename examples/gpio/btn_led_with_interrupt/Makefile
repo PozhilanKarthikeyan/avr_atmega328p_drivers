@@ -6,6 +6,7 @@ OBJCOPY := avr-objcopy
 SIZE := avr-size
 AVRDUDE := avrdude
 
+# FIX 1: Safely extract the current directory name without literal ()
 TARGET := $(notdir $(patsubst %/,%,$(CURDIR)))
 BUILD_DIR := build
 

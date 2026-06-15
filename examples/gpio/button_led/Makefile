@@ -6,7 +6,6 @@ OBJCOPY := avr-objcopy
 SIZE := avr-size
 AVRDUDE := avrdude
 
-# FIX 1: Safely extract the current directory name without literal ()
 TARGET := $(notdir $(patsubst %/,%,$(CURDIR)))
 BUILD_DIR := build
 
@@ -29,7 +28,6 @@ $(LIB_DIR)/libdrv.a:
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
 
-# FIX 2: Dynamic source file matching $(TARGET).c instead of hardcoded blinky.c
 $(BUILD_DIR)/$(TARGET).elf: $(TARGET).c $(LIB_DIR)/libdrv.a | $(BUILD_DIR)
 	$(CC) $(CFLAGS) $(INCLUDES) $< -L$(LIB_DIR) -ldrv -o $@
 
@@ -48,5 +46,4 @@ clean-drivers:
 
 clean-all: clean clean-drivers
 
-# FIX 3: Added clean-drivers and clean-all to .PHONY
 .PHONY: all clean flash clean-drivers clean-all
