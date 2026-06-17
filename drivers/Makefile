@@ -4,6 +4,7 @@ CC := avr-gcc
 AR := avr-ar
 OBJDUMP := avr-objdump
 NM := avr-nm
+SIZE := avr-size
 
 CFLAGS := -mmcu=$(MCU) -Wall -Wextra -Os -g
 
@@ -22,7 +23,7 @@ $(LIB): $(DRIVER_OBJS)
 	@mkdir -p $(BUILD_DIR)
 	$(AR) rcs $@ $^
 	@$(NM) --print-size --size-sort -r $(LIB)
-	@avr-size --format=sysv -d $(LIB)
+	@$(SIZE) --format=avr -d $(LIB) --mcu=$(MCU) 
 
 $(OBJ_DIR)/%.o: %.c
 	@mkdir -p $(dir $@)
