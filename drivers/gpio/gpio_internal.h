@@ -4,9 +4,9 @@
 #include <stdint.h>
 
 typedef struct GPIO_Register_s {
-    uint8_t PIN;
-    uint8_t DDR;
-    uint8_t PORT;
+    volatile uint8_t PIN;
+    volatile uint8_t DDR;
+    volatile uint8_t PORT;
 }GPIO_Register_t;
 
 #define PORT_REGISTER_BASE_ADDR (0x23)
