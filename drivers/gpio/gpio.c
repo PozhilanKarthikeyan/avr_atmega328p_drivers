@@ -1,10 +1,5 @@
 #include "gpio.h"
 
-static volatile uint8_t* const DDR_ARR[]={&DDRB,&DDRC,&DDRD};
-static volatile uint8_t* const PORT_ARR[]={&PORTB,&PORTC,&PORTD};
-static volatile uint8_t* const PIN_ARR[]={&PINB,&PINC,&PIND};
-static volatile uint8_t* const PCMSK_ARR[]={&PCMSK0,&PCMSK1,&PCMSK2};
-
 static int const MAX_PORT_PIN_NUMBER[]={MAX_PORTB_PIN_NUMBER,MAX_PORTC_PIN_NUMBER,MAX_PORTD_PIN_NUMBER};
 
 static volatile uint8_t previous_gpio_state[DRV_GPIO_PORT_MAX]={0}; 
@@ -16,7 +11,7 @@ static inline void _isr_helper(drv_port_t port){
     if (global_gpio_callback == NULL) {
         return ;
     }
-    uint8_t pin_reg =  *PIN_ARR[port];
+    uint8_t pin_reg = PORT_REGISTER_BASE_PTR[port].PIN;
     uint8_t toggled_pins = previous_gpio_state[port]^pin_reg;
     uint8_t change_pin = 0;
     
@@ -34,18 +29,18 @@ static inline void _isr_helper(drv_port_t port){
         switch (gpio_interrupt_mode_array[port][change_pin])
         {
         case DRV_GPIO_INTERRUPT_MODE_BOTH_EDGES:
-            global_gpio_callback(port, change_pin,READ_BIT(pin_reg,change_pin));
+            global_gpio_callback(port,change_pin,READ_BIT(pin_reg,change_pin));
             break;
     
         case DRV_GPIO_INTERRUPT_MODE_RISING_EDGE:
-            if (READ_BIT(pin_reg,change_pin))
+            if (READ_BIT(pin_reg, change_pin))
             {
-                global_gpio_callback(port, change_pin,DRV_GPIO_STATE_HIGH);
+                global_gpio_callback(port,change_pin,DRV_GPIO_STATE_HIGH);
             }
             break;
         case DRV_GPIO_INTERRUPT_MODE_FALLING_EDGE:
-            if (!READ_BIT(pin_reg,change_pin))        {
-                global_gpio_callback(port, change_pin,DRV_GPIO_STATE_LOW);
+            if (!READ_BIT(pin_reg, change_pin)) {
+                global_gpio_callback(port, change_pin, DRV_GPIO_STATE_LOW);
             }
             break;
     
@@ -69,82 +64,84 @@ ISR(PCINT2_vect){
     _isr_helper(DRV_GPIO_PORT_D);
 }
 
-
 drv_gpio_error_t drv_gpio_init(drv_gpio_config_t* gpio_config){
-    if (gpio_config->port>=DRV_GPIO_PORT_MAX)
+    if (gpio_config->port >= DRV_GPIO_PORT_MAX)
     {
         return DRV_GPIO_ERROR_INVALID_PORT;
     }
-    if (gpio_config->pin>MAX_PORT_PIN_NUMBER[gpio_config->port]){
+    if (gpio_config->pin > MAX_PORT_PIN_NUMBER[gpio_config->port]){
         return DRV_GPIO_ERROR_INVALID_PIN;
     }
     
-    if (gpio_config->interrupt_config.enable==true)
+    if (gpio_config->interrupt_config.enable == true)
     {
-        SET_BIT(*(PCMSK_ARR[gpio_config->port]),gpio_config->pin);
-        SET_BIT(PCICR,gpio_config->port);
-        gpio_interrupt_mode_array[gpio_config->port][gpio_config->pin]=gpio_config->interrupt_config.drv_gpio_interrupt_mode;
+        SET_BIT(PCIMSK_REGISTER_BASE_PTR[gpio_config->port], gpio_config->pin);
+        SET_BIT(PCICR, gpio_config->port);
+        gpio_interrupt_mode_array[gpio_config->port][gpio_config->pin] = gpio_config->interrupt_config.drv_gpio_interrupt_mode;
     }
+    
     switch (gpio_config->mode)
     {
         case DRV_GPIO_MODE_INPUT_HIGH_Z:
-            CLEAR_BIT(*(DDR_ARR[gpio_config->port]),gpio_config->pin);
-            CLEAR_BIT(*(PORT_ARR[gpio_config->port]),gpio_config->pin);
+            CLEAR_BIT(PORT_REGISTER_BASE_PTR[gpio_config->port].DDR, gpio_config->pin);
+            CLEAR_BIT(PORT_REGISTER_BASE_PTR[gpio_config->port].PORT, gpio_config->pin);
             break;
         case DRV_GPIO_MODE_INPUT_PULLUP:
-            CLEAR_BIT(*(DDR_ARR[gpio_config->port]),gpio_config->pin);
-            SET_BIT(*(PORT_ARR[gpio_config->port]),gpio_config->pin);
+            CLEAR_BIT(PORT_REGISTER_BASE_PTR[gpio_config->port].DDR, gpio_config->pin);
+            SET_BIT(PORT_REGISTER_BASE_PTR[gpio_config->port].PORT, gpio_config->pin);
             break;
         case DRV_GPIO_MODE_OUTPUT:
             if (gpio_config->inital_state == DRV_GPIO_STATE_HIGH)
             {
-                SET_BIT(*(PORT_ARR[gpio_config->port]),gpio_config->pin);
+                SET_BIT(PORT_REGISTER_BASE_PTR[gpio_config->port].PORT, gpio_config->pin);
             }
             else if (gpio_config->inital_state == DRV_GPIO_STATE_LOW)
             {
-               CLEAR_BIT(*(PORT_ARR[gpio_config->port]),gpio_config->pin); 
+                CLEAR_BIT(PORT_REGISTER_BASE_PTR[gpio_config->port].PORT, gpio_config->pin); 
             }
             else{
                 return DRV_GPIO_ERROR_INVALID_STATE;
             }
-            SET_BIT(*(DDR_ARR[gpio_config->port]),gpio_config->pin);
+            SET_BIT(PORT_REGISTER_BASE_PTR[gpio_config->port].DDR, gpio_config->pin);
             break;    
     default:
         return DRV_GPIO_ERROR_INVALID_MODE;
     }
-    previous_gpio_state[gpio_config->port] = *PIN_ARR[gpio_config->port];
+    
+    previous_gpio_state[gpio_config->port] = PORT_REGISTER_BASE_PTR[gpio_config->port].PIN;
     return DRV_GPIO_SUCCESS;
 }
 
 drv_gpio_error_t drv_gpio_deinit(drv_gpio_config_t* gpio_config){
-    gpio_config->mode=DRV_GPIO_MODE_INPUT_PULLUP;
-    drv_gpio_error_t error=drv_gpio_init(gpio_config);
+    gpio_config->mode = DRV_GPIO_MODE_INPUT_PULLUP;
+    drv_gpio_error_t error = drv_gpio_init(gpio_config);
     return error;
 }
 
 drv_gpio_error_t drv_gpio_set_output(drv_gpio_config_t* gpio_config){
-    if (gpio_config->mode!=DRV_GPIO_MODE_OUTPUT){
+    if (gpio_config->mode != DRV_GPIO_MODE_OUTPUT){
         return DRV_GPIO_ERROR_INVALID_MODE;
     }
-    SET_BIT(*(PORT_ARR[gpio_config->port]),gpio_config->pin);
+    SET_BIT(PORT_REGISTER_BASE_PTR[gpio_config->port].PORT, gpio_config->pin);
     return DRV_GPIO_SUCCESS;
 }
 drv_gpio_error_t drv_gpio_clear_output(drv_gpio_config_t* gpio_config){
-    if (gpio_config->mode!=DRV_GPIO_MODE_OUTPUT){
+    if (gpio_config->mode != DRV_GPIO_MODE_OUTPUT){
         return DRV_GPIO_ERROR_INVALID_MODE;
     }
-    CLEAR_BIT(*(PORT_ARR[gpio_config->port]),gpio_config->pin);
+    CLEAR_BIT(PORT_REGISTER_BASE_PTR[gpio_config->port].PORT, gpio_config->pin);
     return DRV_GPIO_SUCCESS;
 }
 drv_gpio_error_t drv_gpio_toggle_output(drv_gpio_config_t* gpio_config){
     if (gpio_config->mode!=DRV_GPIO_MODE_OUTPUT){
         return DRV_GPIO_ERROR_INVALID_MODE;
     }
-    SET_BIT(*(PIN_ARR[gpio_config->port]),gpio_config->pin);
+    SET_BIT(PORT_REGISTER_BASE_PTR[gpio_config->port].PIN,gpio_config->pin);
     return DRV_GPIO_SUCCESS;
 }
-drv_gpio_error_t drv_gpio_get_state(drv_gpio_config_t* gpio_config,drv_gpio_state_t* state){
-    *state = READ_BIT(*(PIN_ARR[gpio_config->port]),gpio_config->pin);
+
+drv_gpio_error_t drv_gpio_get_state(drv_gpio_config_t* gpio_config, drv_gpio_state_t* state){
+    *state = READ_BIT(PORT_REGISTER_BASE_PTR[gpio_config->port].PIN, gpio_config->pin);
     return DRV_GPIO_SUCCESS;
 }
 
@@ -152,6 +149,3 @@ drv_gpio_error_t drv_gpio_register_interrupt_callback(drv_gpio_callback_t callba
     global_gpio_callback = callback;
     return DRV_GPIO_SUCCESS;
 }
-
-
-

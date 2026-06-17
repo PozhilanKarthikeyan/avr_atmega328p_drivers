@@ -3,6 +3,7 @@
 
 #include <avr/io.h>
 #include <avr/interrupt.h>
+#include"gpio_internal.h"
 #include "common/helper_macros.h"
 #include <stdint.h>
 #include <stdbool.h>
