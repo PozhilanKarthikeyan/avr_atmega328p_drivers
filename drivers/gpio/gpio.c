@@ -7,7 +7,7 @@ static volatile uint8_t previous_gpio_state[DRV_GPIO_PORT_MAX]={0};
 static volatile drv_gpio_interrupt_mode_t gpio_interrupt_mode_array[DRV_GPIO_PORT_MAX][MAX_PORTB_PIN_NUMBER+1]={0};
 static drv_gpio_callback_t global_gpio_callback=NULL;
 
-static inline void _isr_helper(drv_port_t port){
+static inline void _isr_helper(drv_gpio_port_t port){
     if (global_gpio_callback == NULL) {
         return ;
     }

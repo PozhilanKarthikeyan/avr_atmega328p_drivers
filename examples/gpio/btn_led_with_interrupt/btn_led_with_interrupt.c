@@ -24,7 +24,7 @@ drv_gpio_config_t btn_config={
     }
 };
 
-void gpio_callback(drv_port_t port,uint8_t pin,drv_gpio_state_t state){
+void gpio_callback(drv_gpio_port_t port,uint8_t pin,drv_gpio_state_t state){
     if (state==DRV_GPIO_STATE_LOW){
         drv_gpio_set_output(&led_config);
     }
