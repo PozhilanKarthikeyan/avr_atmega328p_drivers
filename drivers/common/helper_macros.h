@@ -4,5 +4,8 @@
 #define SET_BIT(REG,POSITION)     ((REG) |= 1<<(POSITION))
 #define CLEAR_BIT(REG,POSITION)   ((REG) &= ~(1<<(POSITION)))
 #define READ_BIT(REG,POSITION)    (((REG)>>(POSITION))&0X01)
+#define _MASK_FIELD(START, LEN) ((((1U << (LEN)) - 1U) << (START)))
+#define WRITE_FIELD(REG,START,LEN,VALUE) ((REG)=(((REG)&(~(_MASK_FIELD(START,LEN))))|(((VALUE)&((1U<<(LEN))-1U))<<(START))))
+#define READ_FIELD(REG,START,LEN) (((REG)&(_MASK_FIELD(START,LEN)))>>(START))
 
 #endif
