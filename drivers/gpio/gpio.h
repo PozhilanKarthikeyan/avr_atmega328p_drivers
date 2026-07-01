@@ -1,13 +1,9 @@
 #ifndef GPIO_H
 #define GPIO_H
 
-#include <avr/io.h>
-#include <avr/interrupt.h>
 #include"gpio_internal.h"
-#include "common/helper_macros.h"
 #include <stdint.h>
 #include <stdbool.h>
-#include <stdlib.h>
 
 #define MAX_PORTB_PIN_NUMBER 7
 #define MAX_PORTC_PIN_NUMBER 6

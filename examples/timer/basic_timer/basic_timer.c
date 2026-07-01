@@ -1,4 +1,5 @@
 #include "timer/timer.h"
+#include "avr/interrupt.h"
 #include <gpio/gpio.h>
 #include <avr/io.h>
 
@@ -41,9 +42,9 @@ drv_timer_config_t timer_config={
 };
 
 int main(){
-    sei();
     drv_gpio_init(&led_config);
     drv_timer_init(&timer_config);
+    sei();
     drv_timer_start(&timer_config);
     while (1){
     }

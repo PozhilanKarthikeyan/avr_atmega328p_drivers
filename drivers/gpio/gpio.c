@@ -1,4 +1,8 @@
 #include "gpio.h"
+#include <stdlib.h>
+#include <avr/interrupt.h>
+#include <avr/io.h>
+#include "common/helper_macros.h"
 
 static int const MAX_PORT_PIN_NUMBER[]={MAX_PORTB_PIN_NUMBER,MAX_PORTC_PIN_NUMBER,MAX_PORTD_PIN_NUMBER};
 

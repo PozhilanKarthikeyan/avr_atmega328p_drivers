@@ -1,5 +1,5 @@
 #include "timer.h"
-#include "helper_macros.h"
+#include "common/helper_macros.h"
 #include <avr/io.h>
 #include <string.h>
 #include <avr/interrupt.h>
