@@ -60,8 +60,14 @@ ISR(PCINT0_vect){
     _isr_helper(DRV_GPIO_PORT_B);
 }
 
-ISR_ALIAS(PCINT1_vect, PCINT0_vect);
-ISR_ALIAS(PCINT2_vect, PCINT0_vect);
+ISR(PCINT1_vect){
+    _isr_helper(DRV_GPIO_PORT_C);
+}
+
+ISR(PCINT2_vect){
+    _isr_helper(DRV_GPIO_PORT_D);
+}
+
 
 drv_gpio_error_t drv_gpio_init(drv_gpio_config_t* gpio_config){
     if (gpio_config->port >= DRV_GPIO_PORT_MAX)
