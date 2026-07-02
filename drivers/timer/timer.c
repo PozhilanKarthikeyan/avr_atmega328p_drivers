@@ -15,7 +15,7 @@ drv_timer_callback_t timer2_OVF_callback=NULL;
 drv_timer_callback_t timer2_COMPB_callback=NULL;
 drv_timer_callback_t timer2_COMPA_callback=NULL;
 
-void isr_helper(drv_timer_callback_t callback){
+static inline void isr_helper(drv_timer_callback_t callback){
     if (callback!=NULL)
     {
         callback();
@@ -224,4 +224,74 @@ drv_timer_error_t drv_get_counter_value(drv_timer_config_t* timer_config,uint16_
     }
     return DRV_TIMER_SUCCESS;
 
+}
+
+//update the config before calling the function
+drv_timer_error_t drv_update_output_cmp_value(drv_timer_config_t* timer_config,drv_output_cmp_regs_t reg){
+    switch (timer_config->device)
+    {
+    case DRV_TIMER_0:
+    if (reg==DRV_OUTPUT_CMP_REG_A)
+    {
+        TIMER0->OCRA=timer_config->OCA_config.output_cmp_value;
+    }
+    else if (reg==DRV_OUTPUT_CMP_REG_B)
+    {
+        TIMER0->OCRB=timer_config->OCB_config.output_cmp_value;
+    }
+    else
+    {
+        return DRV_TIMER_ERROR_INVALID_OUTPUT_CMP_REG;
+    }
+        break;
+
+    case DRV_TIMER_1:
+        //TODO
+        break;
+
+    case DRV_TIMER_2:
+        //TODO
+        break;
+    
+    default:
+        return DRV_TIMER_ERROR_INVALID_DEVICE;
+    }
+    return DRV_TIMER_SUCCESS;
+}
+
+drv_timer_error_t drv_force_output_cmp(drv_timer_config_t* timer_config,drv_output_cmp_regs_t reg){
+    if (timer_config->timer_mode!=DRV_TIMER_MODE_NORMAL&&timer_config->timer_mode!=DRV_TIMER_MODE_CTC)
+    {
+        return DRV_TIMER_ERROR_INVALID_MODE;
+    }
+    
+    switch (timer_config->device)
+    {
+    case DRV_TIMER_0:
+        if (reg==DRV_OUTPUT_CMP_REG_A)
+        {
+            SET_BIT(TIMER0->TCCRB,FOC0A);
+        }
+        else if (reg==DRV_OUTPUT_CMP_REG_B)
+        {
+            SET_BIT(TIMER0->TCCRB,FOC0B);
+        }
+        else
+        {
+            return DRV_TIMER_ERROR_INVALID_OUTPUT_CMP_REG;
+        }
+        break;
+
+    case DRV_TIMER_1:
+        //TODO
+        break;
+
+    case DRV_TIMER_2:
+        //TODO
+        break;
+    
+    default:
+        return DRV_TIMER_ERROR_INVALID_DEVICE;
+    }
+    return DRV_TIMER_SUCCESS;
 }

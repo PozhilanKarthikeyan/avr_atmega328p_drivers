@@ -82,10 +82,15 @@ typedef enum drv_timer_error_e{
     DRV_TIMER_ERROR_INVALID_DEVICE,
     DRV_TIMER_ERROR_INVALID_MODE,
     DRV_TIMER_ERROR_INVALID_CLK_SOURCE,
+    DRV_TIMER_ERROR_INVALID_OUTPUT_CMP_REG,
     DRV_TIMER_ERROR_INVALID_OUTPUT_CMP_MODE,
 }drv_timer_error_t;
 
-
+typedef enum drv_output_cmp_regs_e{
+    DRV_OUTPUT_CMP_REG_A,
+    DRV_OUTPUT_CMP_REG_B,
+    DRV_OUTPUT_CMP_REG_COUNT,
+}drv_output_cmp_regs_t;
 
 typedef struct drv_timer_config_s
 {
@@ -105,4 +110,16 @@ drv_timer_error_t drv_timer_start(drv_timer_config_t* timer_config);
 drv_timer_error_t drv_timer_stop(drv_timer_config_t* timer_config);
 drv_timer_error_t drv_get_counter_value(drv_timer_config_t* timer_config,uint16_t* value);
 
+/*
+Note:Updates the OCR register using the value stored in the configuration.
+
+In PWM modes the hardware double-buffer is used.
+
+In non-PWM modes the update takes effect immediately.
+In non-PWM modes, compare updates are not synchronized to the timer cycle.
+Applications requiring deterministic compare timing must ensure the update
+is performed at an appropriate point in the counting sequence.
+*/
+drv_timer_error_t drv_update_output_cmp_value(drv_timer_config_t* timer_config,drv_output_cmp_regs_t reg); 
+drv_timer_error_t drv_force_output_cmp(drv_timer_config_t* timer_config,drv_output_cmp_regs_t reg);
 #endif
