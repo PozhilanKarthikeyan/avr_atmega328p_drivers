@@ -63,6 +63,8 @@ ISR(TIMER2_COMPA_vect){
 }
 
 drv_timer_error_t drv_timer_init(drv_timer_config_t* timer_config){
+    // TODO: Validate COM modes for PWM modes where OCRA is used as TOP (WGM = 5 or 7).
+    //In these modes, OCA has hardware restrictions and some COMA settings are reserved.
     switch (timer_config->device)
     {
     case DRV_TIMER_0:
@@ -126,7 +128,61 @@ drv_timer_error_t drv_timer_init(drv_timer_config_t* timer_config){
         break;
 
     case DRV_TIMER_2:
-        //TODO
+        //TODO: async mode
+        WRITE_FIELD(TIMER2->TCCRA,COM2A0,2,timer_config->OCA_config.output_cmp_mode); 
+        WRITE_FIELD(TIMER2->TCCRA,COM2B0,2,timer_config->OCB_config.output_cmp_mode); 
+        TIMER2->OCRA=timer_config->OCA_config.output_cmp_value;
+        TIMER2->OCRB=timer_config->OCB_config.output_cmp_value;
+        switch (timer_config->timer_mode)
+        {
+        case DRV_TIMER_MODE_NORMAL:
+            WRITE_FIELD(TIMER2->TCCRA,WGM20,2,0b00);
+            CLEAR_BIT(TIMER2->TCCRB,WGM22);
+            break;
+        case DRV_TIMER_MODE_CTC:
+            WRITE_FIELD(TIMER2->TCCRA,WGM20,2,0b10);
+            CLEAR_BIT(TIMER2->TCCRB,WGM22);
+            break;
+
+        case DRV_TIMER_MODE_FAST_PWM_TOP_MAX:
+            WRITE_FIELD(TIMER2->TCCRA,WGM20,2,0b11);
+            CLEAR_BIT(TIMER2->TCCRB,WGM22);
+            break;
+
+        case DRV_TIMER_MODE_FAST_PWM_TOP_OCRA:
+            WRITE_FIELD(TIMER2->TCCRA,WGM20,2,0b11);
+            SET_BIT(TIMER2->TCCRB,WGM22);
+            break;
+
+        case DRV_TIMER_MODE_PWM_PHASE_CORRECT_TOP_MAX:
+            WRITE_FIELD(TIMER2->TCCRA,WGM20,2,0b01);
+            CLEAR_BIT(TIMER2->TCCRB,WGM22);
+            break;
+
+        case DRV_TIMER_MODE_PWM_PHASE_CORRECT_TOP_OCRA:
+            WRITE_FIELD(TIMER2->TCCRA,WGM20,2,0b01);
+            SET_BIT(TIMER2->TCCRB,WGM22);
+            break;
+        
+        default:
+            return DRV_TIMER_ERROR_INVALID_MODE;
+        }
+
+        if (timer_config->overflow_interrupt_enable){
+            SET_BIT(TIMSK2,TOIE2);
+            timer2_OVF_callback=timer_config->overflow_callback;
+        } 
+        else CLEAR_BIT(TIMSK2,TOIE2);
+        if (timer_config->OCA_config.interrupt_enable){
+            SET_BIT(TIMSK2,OCIE2A);
+            timer2_COMPA_callback=timer_config->OCA_config.callback;
+        } 
+        else CLEAR_BIT(TIMSK2,OCIE2A);
+        if (timer_config->OCB_config.interrupt_enable){
+            SET_BIT(TIMSK2,OCIE2B);
+            timer2_COMPB_callback=timer_config->OCB_config.callback;
+        } 
+        else CLEAR_BIT(TIMSK2,OCIE2B);
         break;
     
     default:
@@ -176,10 +232,10 @@ drv_timer_error_t drv_timer_start(drv_timer_config_t* timer_config){
         WRITE_FIELD(TIMER0->TCCRB,CS00,3,timer_config->clk_src);
         break;
     case DRV_TIMER_1:
-        WRITE_FIELD(TIMER1->TCCRB,CS00,3,timer_config->clk_src);
+        WRITE_FIELD(TIMER1->TCCRB,CS10,3,timer_config->clk_src);
         break;
     case DRV_TIMER_2:
-        WRITE_FIELD(TIMER2->TCCRB,CS00,3,timer_config->clk_src);
+        WRITE_FIELD(TIMER2->TCCRB,CS20,3,timer_config->clk_src);
         break;
     default:
         return DRV_TIMER_ERROR_INVALID_DEVICE;
@@ -193,10 +249,10 @@ drv_timer_error_t drv_timer_stop(drv_timer_config_t* timer_config){
         WRITE_FIELD(TIMER0->TCCRB,CS00,3,0);
         break;
     case DRV_TIMER_1:
-        WRITE_FIELD(TIMER1->TCCRB,CS00,3,0);
+        WRITE_FIELD(TIMER1->TCCRB,CS10,3,0);
         break;
     case DRV_TIMER_2:
-        WRITE_FIELD(TIMER2->TCCRB,CS00,3,0);
+        WRITE_FIELD(TIMER2->TCCRB,CS20,3,0);
         break;
     default:
         return DRV_TIMER_ERROR_INVALID_DEVICE;
@@ -231,18 +287,18 @@ drv_timer_error_t drv_update_output_cmp_value(drv_timer_config_t* timer_config,d
     switch (timer_config->device)
     {
     case DRV_TIMER_0:
-    if (reg==DRV_OUTPUT_CMP_REG_A)
-    {
-        TIMER0->OCRA=timer_config->OCA_config.output_cmp_value;
-    }
-    else if (reg==DRV_OUTPUT_CMP_REG_B)
-    {
-        TIMER0->OCRB=timer_config->OCB_config.output_cmp_value;
-    }
-    else
-    {
-        return DRV_TIMER_ERROR_INVALID_OUTPUT_CMP_REG;
-    }
+        if (reg==DRV_OUTPUT_CMP_REG_A)
+        {
+            TIMER0->OCRA=timer_config->OCA_config.output_cmp_value;
+        }
+        else if (reg==DRV_OUTPUT_CMP_REG_B)
+        {
+            TIMER0->OCRB=timer_config->OCB_config.output_cmp_value;
+        }
+        else
+        {
+            return DRV_TIMER_ERROR_INVALID_OUTPUT_CMP_REG;
+        }
         break;
 
     case DRV_TIMER_1:
@@ -250,7 +306,18 @@ drv_timer_error_t drv_update_output_cmp_value(drv_timer_config_t* timer_config,d
         break;
 
     case DRV_TIMER_2:
-        //TODO
+        if (reg==DRV_OUTPUT_CMP_REG_A)
+        {
+            TIMER2->OCRA=timer_config->OCA_config.output_cmp_value;
+        }
+        else if (reg==DRV_OUTPUT_CMP_REG_B)
+        {
+            TIMER2->OCRB=timer_config->OCB_config.output_cmp_value;
+        }
+        else
+        {
+            return DRV_TIMER_ERROR_INVALID_OUTPUT_CMP_REG;
+        }
         break;
     
     default:
@@ -287,7 +354,18 @@ drv_timer_error_t drv_force_output_cmp(drv_timer_config_t* timer_config,drv_outp
         break;
 
     case DRV_TIMER_2:
-        //TODO
+        if (reg==DRV_OUTPUT_CMP_REG_A)
+        {
+            SET_BIT(TIMER2->TCCRB,FOC2A);
+        }
+        else if (reg==DRV_OUTPUT_CMP_REG_B)
+        {
+            SET_BIT(TIMER2->TCCRB,FOC2B);
+        }
+        else
+        {
+            return DRV_TIMER_ERROR_INVALID_OUTPUT_CMP_REG;
+        }
         break;
     
     default:
