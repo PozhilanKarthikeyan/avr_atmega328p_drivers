@@ -1,6 +1,7 @@
 #include "timer.h"
 #include "common/helper_macros.h"
 #include <avr/io.h>
+#include <avr/cpufunc.h>
 #include <string.h>
 #include <avr/interrupt.h>
 
@@ -63,8 +64,10 @@ ISR(TIMER2_COMPA_vect){
 }
 
 drv_timer_error_t drv_timer_init(drv_timer_config_t* timer_config){
-    // TODO: Validate COM modes for PWM modes where OCRA is used as TOP (WGM = 5 or 7).
-    //In these modes, OCA has hardware restrictions and some COMA settings are reserved.
+    if (timer_config->OCB_config.output_cmp_mode==1 &&(timer_config->timer_mode!=DRV_TIMER_MODE_NORMAL && timer_config->timer_mode!=DRV_TIMER_MODE_CTC))
+    {
+        return DRV_TIMER_ERROR_INVALID_OUTPUT_CMP_MODE;
+    }
     switch (timer_config->device)
     {
     case DRV_TIMER_0:
@@ -72,6 +75,7 @@ drv_timer_error_t drv_timer_init(drv_timer_config_t* timer_config){
         WRITE_FIELD(TIMER0->TCCRA,COM0B0,2,timer_config->OCB_config.output_cmp_mode); 
         TIMER0->OCRA=timer_config->OCA_config.output_cmp_value;
         TIMER0->OCRB=timer_config->OCB_config.output_cmp_value;
+        TIMER0->TCNT=0;
         switch (timer_config->timer_mode)
         {
         case DRV_TIMER_MODE_NORMAL:
@@ -128,11 +132,30 @@ drv_timer_error_t drv_timer_init(drv_timer_config_t* timer_config){
         break;
 
     case DRV_TIMER_2:
-        //TODO: async mode
+        switch (timer_config->timer2_clock_mode)
+        {
+        case DRV_TIMER_2_CLK_MODE_SYNC:
+            CLEAR_BIT(ASSR,EXCLK);
+            CLEAR_BIT(ASSR,AS2);
+            break;
+        case DRV_TIMER_2_CLK_MODE_ASYNC_CRYSTAL:
+            CLEAR_BIT(ASSR,EXCLK);
+            SET_BIT(ASSR,AS2);
+            break;
+        
+        case DRV_TIMER_2_CLK_MODE_ASYNC_EXT_CLK:
+            SET_BIT(ASSR,EXCLK);
+            SET_BIT(ASSR,AS2);
+            break;
+        
+        default:
+            return DRV_TIMER_ERROR_INVALID_TIMER_2_CLK_MODE;
+        }
         WRITE_FIELD(TIMER2->TCCRA,COM2A0,2,timer_config->OCA_config.output_cmp_mode); 
         WRITE_FIELD(TIMER2->TCCRA,COM2B0,2,timer_config->OCB_config.output_cmp_mode); 
         TIMER2->OCRA=timer_config->OCA_config.output_cmp_value;
         TIMER2->OCRB=timer_config->OCB_config.output_cmp_value;
+        TIMER2->TCNT=0;
         switch (timer_config->timer_mode)
         {
         case DRV_TIMER_MODE_NORMAL:
@@ -183,6 +206,10 @@ drv_timer_error_t drv_timer_init(drv_timer_config_t* timer_config){
             timer2_COMPB_callback=timer_config->OCB_config.callback;
         } 
         else CLEAR_BIT(TIMSK2,OCIE2B);
+        while (READ_FIELD(ASSR,TCR2BUB,5))
+        {
+            _NOP();
+        }
         break;
     
     default:
@@ -213,6 +240,10 @@ drv_timer_error_t drv_timer_deinit(drv_timer_config_t* timer_config){
         timer2_OVF_callback=NULL;
         timer2_COMPB_callback=NULL;
         timer2_COMPA_callback=NULL;
+        while (READ_FIELD(ASSR,TCR2BUB,5))
+        {
+            _NOP();
+        }
         break;
     default:
         return DRV_TIMER_ERROR_INVALID_DEVICE;
@@ -236,6 +267,10 @@ drv_timer_error_t drv_timer_start(drv_timer_config_t* timer_config){
         break;
     case DRV_TIMER_2:
         WRITE_FIELD(TIMER2->TCCRB,CS20,3,timer_config->clk_src);
+        while (READ_BIT(ASSR,TCR2BUB))
+        {
+            _NOP();
+        }
         break;
     default:
         return DRV_TIMER_ERROR_INVALID_DEVICE;
@@ -253,6 +288,11 @@ drv_timer_error_t drv_timer_stop(drv_timer_config_t* timer_config){
         break;
     case DRV_TIMER_2:
         WRITE_FIELD(TIMER2->TCCRB,CS20,3,0);
+        while (READ_BIT(ASSR,TCR2BUB))
+        {
+            _NOP();
+        }
+        
         break;
     default:
         return DRV_TIMER_ERROR_INVALID_DEVICE;
@@ -309,10 +349,18 @@ drv_timer_error_t drv_update_output_cmp_value(drv_timer_config_t* timer_config,d
         if (reg==DRV_OUTPUT_CMP_REG_A)
         {
             TIMER2->OCRA=timer_config->OCA_config.output_cmp_value;
+            while (READ_BIT(ASSR,OCR2AUB))
+            {
+                _NOP();
+            }
         }
         else if (reg==DRV_OUTPUT_CMP_REG_B)
         {
             TIMER2->OCRB=timer_config->OCB_config.output_cmp_value;
+            while (READ_BIT(ASSR,OCR2BUB))
+            {
+                _NOP();
+            }
         }
         else
         {
@@ -365,6 +413,10 @@ drv_timer_error_t drv_force_output_cmp(drv_timer_config_t* timer_config,drv_outp
         else
         {
             return DRV_TIMER_ERROR_INVALID_OUTPUT_CMP_REG;
+        }
+        while (READ_BIT(ASSR,TCR2BUB))
+        {
+            _NOP();
         }
         break;
     

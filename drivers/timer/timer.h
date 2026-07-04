@@ -65,8 +65,31 @@ typedef enum drv_timer_output_cmp_modes_e{
 
 }drv_timer_output_cmp_modes_t;
 
-typedef void (*drv_timer_callback_t)(void);
+typedef enum drv_timer_error_e{
+    DRV_TIMER_SUCCESS,
+    DRV_TIMER_ERROR_INVALID_DEVICE,
+    DRV_TIMER_ERROR_INVALID_MODE,
+    DRV_TIMER_ERROR_INVALID_CLK_SOURCE,
+    DRV_TIMER_ERROR_INVALID_OUTPUT_CMP_REG,
+    DRV_TIMER_ERROR_INVALID_OUTPUT_CMP_MODE,
+    DRV_TIMER_ERROR_INVALID_TIMER_2_CLK_MODE,
+}drv_timer_error_t;
 
+typedef enum drv_output_cmp_regs_e{
+    DRV_OUTPUT_CMP_REG_A,
+    DRV_OUTPUT_CMP_REG_B,
+    DRV_OUTPUT_CMP_REG_COUNT,
+}drv_output_cmp_regs_t;
+
+typedef enum drv_timer2_clock_mode_e{
+    DRV_TIMER_2_CLK_MODE_SYNC,
+    DRV_TIMER_2_CLK_MODE_ASYNC_CRYSTAL,
+    DRV_TIMER_2_CLK_MODE_ASYNC_EXT_CLK,
+    DRV_TIMER_2_CLK_MODE_COUNT
+    
+}drv_timer2_clock_mode_t;
+
+typedef void (*drv_timer_callback_t)(void);
 
 typedef struct drv_timer_output_cmp_config_s
 {
@@ -77,33 +100,20 @@ typedef struct drv_timer_output_cmp_config_s
 
 }drv_timer_output_cmp_config_t;
 
-typedef enum drv_timer_error_e{
-    DRV_TIMER_SUCCESS,
-    DRV_TIMER_ERROR_INVALID_DEVICE,
-    DRV_TIMER_ERROR_INVALID_MODE,
-    DRV_TIMER_ERROR_INVALID_CLK_SOURCE,
-    DRV_TIMER_ERROR_INVALID_OUTPUT_CMP_REG,
-    DRV_TIMER_ERROR_INVALID_OUTPUT_CMP_MODE,
-}drv_timer_error_t;
-
-typedef enum drv_output_cmp_regs_e{
-    DRV_OUTPUT_CMP_REG_A,
-    DRV_OUTPUT_CMP_REG_B,
-    DRV_OUTPUT_CMP_REG_COUNT,
-}drv_output_cmp_regs_t;
-
 typedef struct drv_timer_config_s
 {
-   drv_timer_device_t device;
-   drv_timer_clock_src_t clk_src;
+   drv_timer_device_t device:2;
+   drv_timer_clock_src_t clk_src:3;
+   bool overflow_interrupt_enable:1;
+   drv_timer2_clock_mode_t timer2_clock_mode:2; //Ignored for devices timer0 and timer1
    drv_timer_mode_t timer_mode;
-   bool overflow_interrupt_enable;
    drv_timer_callback_t overflow_callback;
    drv_timer_output_cmp_config_t OCA_config;
    drv_timer_output_cmp_config_t OCB_config;
 
 }drv_timer_config_t;
 
+// Note: TCNT is initalized as 0. If OCRA or OCRB is initialized to 0, the first timer period may be extended to the timer's maximum period due to compare-match blocking after a TCNT write.
 drv_timer_error_t drv_timer_init(drv_timer_config_t* timer_config);
 drv_timer_error_t drv_timer_deinit(drv_timer_config_t* timer_config);
 drv_timer_error_t drv_timer_start(drv_timer_config_t* timer_config);
