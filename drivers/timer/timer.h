@@ -39,15 +39,65 @@ typedef enum drv_timer_clock_src_e{
 
 typedef enum drv_timer_mode_e{
     //NON PWM MODES
-    DRV_TIMER_MODE_NORMAL,
+    DRV_TIMER_MODE_NORMAL,//for this mode top value from user is ignored 
     DRV_TIMER_MODE_CTC,
 
     //PWM MODES
-    DRV_TIMER_MODE_FAST_PWM_TOP_MAX,
-    DRV_TIMER_MODE_FAST_PWM_TOP_OCRA,
-    DRV_TIMER_MODE_PWM_PHASE_CORRECT_TOP_MAX,
-    DRV_TIMER_MODE_PWM_PHASE_CORRECT_TOP_OCRA,
+    DRV_TIMER_MODE_FAST_PWM,
+    DRV_TIMER_MODE_PWM_PHASE_CORRECT,
+    DRV_TIMER_MODE_PWM_PHASE_FREQ_CORRECT,
+
 }drv_timer_mode_t;
+
+/*
+ 
+  The TOP value determines the maximum counter value before the timer
+  overflows or changes counting direction (depending on the selected mode).
+ 
+  Valid combinations:
+ 
+  ┌──────────────────────────────────────┬────────────────────────────────────────────┐
+  │ Timer Mode                           │ Valid TOP Values                           │
+  ├──────────────────────────────────────┼────────────────────────────────────────────┤
+  │ DRV_TIMER_MODE_NORMAL                │ DRV_TIMER_TOP_MAX                          │
+  │ DRV_TIMER_MODE_CTC                   │ DRV_TIMER_TOP_OCRA                         │
+  │                                      │ DRV_TIMER_TOP_ICR     (Timer1 only)        │
+  │ DRV_TIMER_MODE_FAST_PWM              │ DRV_TIMER_TOP_MAX                          │
+  │                                      │ DRV_TIMER_TOP_OCRA                         │
+  │                                      │ DRV_TIMER_TOP_8_BIT   (Timer1 only)        │
+  │                                      │ DRV_TIMER_TOP_9_BIT   (Timer1 only)        │
+  │                                      │ DRV_TIMER_TOP_10_BIT  (Timer1 only)        │
+  │                                      │ DRV_TIMER_TOP_ICR     (Timer1 only)        │
+  │ DRV_TIMER_MODE_PWM_PHASE_CORRECT     │ DRV_TIMER_TOP_MAX                          │
+  │                                      │ DRV_TIMER_TOP_OCRA                         │
+  │                                      │ DRV_TIMER_TOP_8_BIT   (Timer1 only)        │
+  │                                      │ DRV_TIMER_TOP_9_BIT   (Timer1 only)        │
+  │                                      │ DRV_TIMER_TOP_10_BIT  (Timer1 only)        │
+  │                                      │ DRV_TIMER_TOP_ICR     (Timer1 only)        │
+  │ DRV_TIMER_MODE_PWM_PHASE_FREQ_CORRECT│ DRV_TIMER_TOP_OCRA (Timer1 only)           │
+  │                                      │ DRV_TIMER_TOP_ICR  (Timer1 only)           │
+  └──────────────────────────────────────┴────────────────────────────────────────────┘
+ 
+ DRV_TIMER_TOP_MAX corresponds to:
+        - Timer0/Timer2: 0xFF
+        - Timer1:        0xFFFF
+ 
+  DRV_TIMER_TOP_8_BIT, DRV_TIMER_TOP_9_BIT,DRV_TIMER_TOP_10_BIT and DRV_TIMER_TOP_ICR are supported only by Timer1.
+ */
+
+typedef enum drv_timer_top_e{
+    /* Maximum counter value.
+       Timer0/2 : 0xFF
+       Timer1   : 0xFFFF */
+    DRV_TIMER_TOP_MAX, 
+    DRV_TIMER_TOP_OCRA,
+
+    //Available only on timer 1
+    DRV_TIMER_TOP_8_BIT,
+    DRV_TIMER_TOP_9_BIT,
+    DRV_TIMER_TOP_10_BIT,
+    DRV_TIMER_TOP_ICR,
+}drv_timer_top_t;
 
 typedef enum drv_timer_output_cmp_modes_e{
     DRV_TIMER_OUTPUT_CMP_PIN_DISCONNECTED    =0,
@@ -69,6 +119,7 @@ typedef enum drv_timer_error_e{
     DRV_TIMER_SUCCESS,
     DRV_TIMER_ERROR_INVALID_DEVICE,
     DRV_TIMER_ERROR_INVALID_MODE,
+    DRV_TIMER_ERROR_INVALID_TOP,
     DRV_TIMER_ERROR_INVALID_CLK_SOURCE,
     DRV_TIMER_ERROR_INVALID_OUTPUT_CMP_REG,
     DRV_TIMER_ERROR_INVALID_OUTPUT_CMP_MODE,
@@ -107,6 +158,7 @@ typedef struct drv_timer_config_s
    bool overflow_interrupt_enable:1;
    drv_timer2_clock_mode_t timer2_clock_mode:2; //Ignored for devices timer0 and timer1
    drv_timer_mode_t timer_mode;
+   drv_timer_top_t top;
    drv_timer_callback_t overflow_callback;
    drv_timer_output_cmp_config_t OCA_config;
    drv_timer_output_cmp_config_t OCB_config;
