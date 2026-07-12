@@ -142,6 +142,16 @@ typedef enum drv_timer2_clock_mode_e{
 
 typedef void (*drv_timer_callback_t)(void);
 
+typedef struct drv_timer1_input_capture_config_s
+{
+    bool capture_edge_select:1; // true is rising
+    bool noise_canceler_enable:1;
+    bool interrupt_enable:1;
+    drv_timer_callback_t callback;
+    uint16_t input_capture_reg_value;
+
+}drv_timer1_input_capture_config_t;
+
 typedef struct drv_timer_output_cmp_config_s
 {
     drv_timer_output_cmp_modes_t output_cmp_mode;
@@ -162,7 +172,7 @@ typedef struct drv_timer_config_s
    drv_timer_callback_t overflow_callback;
    drv_timer_output_cmp_config_t OCA_config;
    drv_timer_output_cmp_config_t OCB_config;
-
+   drv_timer1_input_capture_config_t input_capture_config; //Ignored for devices timer0 and timer2
 }drv_timer_config_t;
 
 // Note: TCNT is initalized as 0. If OCRA or OCRB is initialized to 0, the first timer period may be extended to the timer's maximum period due to compare-match blocking after a TCNT write.
