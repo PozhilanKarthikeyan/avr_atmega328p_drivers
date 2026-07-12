@@ -576,7 +576,6 @@ drv_timer_error_t drv_update_output_cmp_value(drv_timer_config_t* timer_config,d
             return DRV_TIMER_ERROR_INVALID_OUTPUT_CMP_REG;
         }
         break;
-        break;
 
     case DRV_TIMER_2:
         if (reg==DRV_OUTPUT_CMP_REG_A)
@@ -666,6 +665,18 @@ drv_timer_error_t drv_force_output_cmp(drv_timer_config_t* timer_config,drv_outp
     
     default:
         return DRV_TIMER_ERROR_INVALID_DEVICE;
+    }
+    return DRV_TIMER_SUCCESS;
+}
+
+drv_timer_error_t drv_get_input_capture_value(drv_timer_config_t *timer_config,uint16_t *value){
+    if (timer_config->device != DRV_TIMER_1)
+    {
+        return DRV_TIMER_ERROR_INVALID_DEVICE;
+    }
+    
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
+        *value=TIMER1->ICR;
     }
     return DRV_TIMER_SUCCESS;
 }

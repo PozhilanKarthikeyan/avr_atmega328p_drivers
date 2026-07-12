@@ -194,4 +194,5 @@ is performed at an appropriate point in the counting sequence.
 */
 drv_timer_error_t drv_update_output_cmp_value(drv_timer_config_t* timer_config,drv_output_cmp_regs_t reg); 
 drv_timer_error_t drv_force_output_cmp(drv_timer_config_t* timer_config,drv_output_cmp_regs_t reg);
+drv_timer_error_t drv_get_input_capture_value(drv_timer_config_t *timer_config,uint16_t *value); //only for timer 1
 #endif
