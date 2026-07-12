@@ -4,6 +4,7 @@
 #include <avr/cpufunc.h>
 #include <string.h>
 #include <avr/interrupt.h>
+#include <util/atomic.h>
 
 drv_timer_callback_t timer0_OVF_callback=NULL;
 drv_timer_callback_t timer0_COMPB_callback=NULL;
@@ -522,7 +523,9 @@ drv_timer_error_t drv_get_counter_value(drv_timer_config_t* timer_config,uint16_
         break;
 
     case DRV_TIMER_1:
-        *value=TIMER1->TCNT;
+        ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
+            *value=TIMER1->TCNT;
+        }
         break;
 
     case DRV_TIMER_2:
@@ -556,7 +559,23 @@ drv_timer_error_t drv_update_output_cmp_value(drv_timer_config_t* timer_config,d
         break;
 
     case DRV_TIMER_1:
-        //TODO
+        if (reg==DRV_OUTPUT_CMP_REG_A)
+        {
+            ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
+                TIMER1->OCRA=timer_config->OCA_config.output_cmp_value;
+            }
+        }
+        else if (reg==DRV_OUTPUT_CMP_REG_B)
+        {
+            ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
+                TIMER1->OCRB=timer_config->OCB_config.output_cmp_value;
+            }
+        }
+        else
+        {
+            return DRV_TIMER_ERROR_INVALID_OUTPUT_CMP_REG;
+        }
+        break;
         break;
 
     case DRV_TIMER_2:
@@ -612,7 +631,18 @@ drv_timer_error_t drv_force_output_cmp(drv_timer_config_t* timer_config,drv_outp
         break;
 
     case DRV_TIMER_1:
-        //TODO
+        if (reg==DRV_OUTPUT_CMP_REG_A)
+        {
+            SET_BIT(TIMER1->TCCRC,FOC1A);
+        }
+        else if (reg==DRV_OUTPUT_CMP_REG_B)
+        {
+            SET_BIT(TIMER1->TCCRC,FOC1B);
+        }
+        else
+        {
+            return DRV_TIMER_ERROR_INVALID_OUTPUT_CMP_REG;
+        }
         break;
 
     case DRV_TIMER_2:
