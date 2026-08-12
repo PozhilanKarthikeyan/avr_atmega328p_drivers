@@ -27,6 +27,14 @@ typedef enum drv_usart_char_size_e{
     DRV_USART_CHAR_SIZE_MAX=DRV_USART_CHAR_SIZE_NINE
 }drv_usart_char_size_t;
 
+typedef enum drv_usart_error_e{
+    DRV_USART_SUCCESS,
+    DRV_USART_ERROR_INVALID_MODE,
+    DRV_USART_ERROR_INVALID_PARITY_MODE,
+    DRV_USART_ERROR_INVALID_CHAR_SIZE,
+    DRV_USART_ERROR_INVALID_BAUD,
+}drv_usart_error_t;
+
 typedef struct drv_usart_config_s{
     drv_usart_mode_t mode;
     uint16_t baud_rate;
@@ -34,13 +42,20 @@ typedef struct drv_usart_config_s{
     drv_usart_parity_mode_t parity_mode     :2;
     bool receiver_enable                    :1;
     bool transmitter_enable                 :1;
-    bool receive_at_rising_edge             :1;
-    bool two_stop_bits_enable              :1;
+    bool receive_at_rising_edge             :1; //only applicable for sync mode
+    bool two_stop_bits_enable               :1;
     //TODO: implement hardware specific features
     // bool speedx2_enable                     :1;
     // bool multiprocessor_comm_mode_enable    :1;
 }drv_usart_config_t;
 
+drv_usart_error_t drv_usart_init(drv_usart_config_t *config);
+
+drv_usart_error_t drv_usart_deinit(void);
+
+drv_usart_error_t drv_usart_transmit(uint8_t data);
+
+drv_usart_error_t drv_usart_receive(uint8_t *data);
 
 
 #endif
