@@ -33,6 +33,9 @@ typedef enum drv_usart_error_e{
     DRV_USART_ERROR_INVALID_PARITY_MODE,
     DRV_USART_ERROR_INVALID_CHAR_SIZE,
     DRV_USART_ERROR_INVALID_BAUD,
+    DRV_USART_ERROR_FRAME,
+    DRV_USART_ERROR_DATA_OVERRUN,
+    DRV_USART_ERROR_PARITY,
 }drv_usart_error_t;
 
 typedef struct drv_usart_config_s{

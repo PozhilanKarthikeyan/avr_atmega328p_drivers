@@ -83,11 +83,11 @@ drv_usart_error_t drv_usart_init(drv_usart_config_t *config){
     {
         if (config->receive_at_rising_edge)
         {
-            CLEAR_BIT(UCSR0C, UCPOL0);
+            SET_BIT(UCSR0C, UCPOL0);
         }
         else
         {
-            SET_BIT(UCSR0C, UCPOL0);
+            CLEAR_BIT(UCSR0C, UCPOL0);
         }
     }
 
@@ -138,8 +138,7 @@ drv_usart_error_t drv_usart_init(drv_usart_config_t *config){
     return DRV_USART_SUCCESS;
 }
 
-drv_usart_error_t drv_usart_deinit(void)
-{
+drv_usart_error_t drv_usart_deinit(void){
     CLEAR_BIT(UCSR0B, RXEN0);
     CLEAR_BIT(UCSR0B, TXEN0);
 
@@ -152,6 +151,42 @@ drv_usart_error_t drv_usart_deinit(void)
 
     UBRR0H = 0x00;
     UBRR0L = 0x00;
+
+    return DRV_USART_SUCCESS;
+}
+
+drv_usart_error_t drv_usart_transmit(uint8_t data){
+    while (!(READ_BIT(UCSR0A, UDRE0)))
+    {
+        /* Wait */
+    }
+    UDR0 = data;
+
+    return DRV_USART_SUCCESS;
+}
+
+drv_usart_error_t drv_usart_receive(uint8_t *data){
+    while (!(READ_BIT(UCSR0A, RXC0)))
+    {
+        /* Wait */
+    }
+
+    *data = UDR0;
+
+    if (READ_BIT(UCSR0A, FE0))
+    {
+        return DRV_USART_ERROR_FRAME;
+    }
+
+    if (READ_BIT(UCSR0A, DOR0))
+    {
+        return DRV_USART_ERROR_DATA_OVERRUN;
+    }
+
+    if (READ_BIT(UCSR0A, UPE0))
+    {
+        return DRV_USART_ERROR_PARITY;
+    }
 
     return DRV_USART_SUCCESS;
 }
